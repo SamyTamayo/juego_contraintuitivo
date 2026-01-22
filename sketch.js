@@ -8,17 +8,19 @@ const VEL_HUIDA = 30;
 const RADIO_DETECCION = 140;
 const LERP_CURSOR = 0.15;
 
+
 const PALETTE = [
-  { h: 320, s: 85, b: 100 }, 
-  { h: 300, s: 75, b: 100 }, 
-  { h: 280, s: 65, b: 95  }, 
-  { h: 290, s: 70, b: 95  }, 
-  { h: 340, s: 80, b: 100 }  
+  { h: 320, s: 85, b: 100 },
+  { h: 300, s: 75, b: 100 },
+  { h: 280, s: 65, b: 95  },
+  { h: 290, s: 70, b: 95  },
+  { h: 340, s: 80, b: 100 }
 ];
 
 let scorePop = 0;
 let floatTexts = [];
 const SCORE_POR_FRAME = 1;
+
 
 let colorPool = [];
 
@@ -71,7 +73,7 @@ function draw() {
           life: 45
         });
 
-        releaseColor(s.col);
+        releaseColor(s.baseCol);
 
         stars.splice(i, 1);
         spawnStar();
@@ -88,10 +90,30 @@ class Star {
     this.pos = createVector(x, y);
     this.vel = createVector(0, 0);
     this.size = 60;
-    this.col = col; 
+
+    this.baseCol = col;               
+    this.colorIndex = this.indexOfCol(col); 
+    this.colorLerp = random(0, 1);     
+    this.colorSpeed = random(0.008, 0.018); 
+  }
+
+  indexOfCol(col) {
+
+    for (let i = 0; i < PALETTE.length; i++) {
+      let c = PALETTE[i];
+      if (c.h === col.h && c.s === col.s && c.b === col.b) return i;
+    }
+    return floor(random(PALETTE.length));
   }
 
   update() {
+
+    this.colorLerp += this.colorSpeed;
+    if (this.colorLerp >= 1) {
+      this.colorLerp = 0;
+      this.colorIndex = (this.colorIndex + 1) % PALETTE.length;
+    }
+
     let d = dist(cursorX, cursorY, this.pos.x, this.pos.y);
 
     if (d < RADIO_DETECCION) {
@@ -114,9 +136,17 @@ class Star {
   }
 
   display() {
+
+    let c1 = PALETTE[this.colorIndex];
+    let c2 = PALETTE[(this.colorIndex + 1) % PALETTE.length];
+
+    let h = lerp(c1.h, c2.h, this.colorLerp);
+    let s = lerp(c1.s, c2.s, this.colorLerp);
+    let b = lerp(c1.b, c2.b, this.colorLerp);
+
     push();
     translate(this.pos.x, this.pos.y);
-    fill(this.col.h, this.col.s, this.col.b);
+    fill(h, s, b);
     noStroke();
 
     beginShape();
@@ -169,18 +199,16 @@ function updateFloatTexts() {
 }
 
 function resetColorPool() {
-  colorPool = PALETTE.slice(); 
-  shuffle(colorPool, true);  
+  colorPool = PALETTE.slice();
+  shuffle(colorPool, true);
 }
 
 function pickUniqueColor() {
-
   if (colorPool.length === 0) resetColorPool();
   return colorPool.pop();
 }
 
 function releaseColor(col) {
-
   colorPool.push(col);
   shuffle(colorPool, true);
 }
